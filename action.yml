@@ -14,9 +14,9 @@ inputs:
     required: false
     default: ''
   gitHubToken:
-    description: 'The GITHUB_TOKEN value. Required to produce latest tags.'
+    description: 'The GITHUB_TOKEN value. Required to produce latest tags. Use `secrets.GITHUB_TOKEN`'
     required: false
-    default: "${{ secrets.GITHUB_TOKEN }}"
+    default: ""
   branchMappings:
     description: 'Used for mapping untagged branches to tag names, such as main:edge.'
     required: false
