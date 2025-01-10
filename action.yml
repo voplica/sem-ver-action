@@ -1,0 +1,170 @@
+name: 'Voplica Semantic Versioning'
+description: 'An Action modifies output from mapped/action-vtl action for semantic versioning'
+branding:
+  icon: 'book'
+  color: 'gray-dark'
+
+inputs:
+  baseVersion:
+    description: 'The base version of this repo. The first version of release. Applied if there is no any release yet. "v" prefix is optional.'
+    required: false
+    default: '1.0.0'
+  dockerTagsPrefix:
+    description: 'Docker tags prefix'
+    required: false
+    default: ''
+  gitHubToken:
+    description: 'The GITHUB_TOKEN value. Required to produce latest tags.'
+    required: false
+    default: "${{ secrets.GITHUB_TOKEN }}"
+  branchMappings:
+    description: 'Used for mapping untagged branches to tag names, such as main:edge.'
+    required: false
+    default: 'main:edge'
+  prereleasePrefix:
+    description: 'The <pre-release> prefix on an untagged run.'
+    required: false
+    default: 'prerelease'
+  versionFile:
+    description: 'A filename where the full SEMVER and commit SHA will be written. Set to empty string if you do not want a version file to be created.'
+    required: false
+    default: 'VERSION'
+  releasesBranch:
+    description: 'Branch where automatic releases should be created. Set to empty string to deactivate releases creation'
+    required: false
+    default: 'main'
+  forcePatchIncrementIfNoChanges:
+    description: 'Forces to increment patch if no changes were made since the last release'
+    required: false
+    default: 'false'
+  dockerPlatformSuffix:
+    description: 'Adds a suffix to the docker tag to identify the platform that can be referenced by a composit manifest'
+    required: false
+    default: ''
+
+outputs:
+  ver_major:
+    description: Major version portion of the SEMVER
+    value: "${{ steps.vtl.outputs.ver_major }}"
+  ver_minor:
+    description: Minor version portion of the SEMVER
+    value: "${{ steps.vtl.outputs.ver_minor }}"
+  ver_patch:
+    description: Patch version portion of the SEMVER
+    value: "${{ steps.vtl.outputs.ver_patch }}"
+  ver_preRelease:
+    description: Pre-release portion of the SEMVER
+    value: "${{ steps.vtl.outputs.ver_preRelease }}"
+  ver_metadata:
+    description: Metadata portion of the SEMVER
+    value: "${{ steps.vtl.outputs.ver_metadata }}"
+  ver_buildNumber:
+    description: The current build number
+    value: "${{ steps.vtl.outputs.ver_buildNumber }}"
+  ver_created:
+    description: ISO8601 datetime stamp of when the build was run
+    value: "${{ steps.vtl.outputs.ver_created }}"
+  ver_tag:
+    description: The version tag
+    value: "${{ steps.vtl.outputs.ver_tag }}"
+  ver_semVer:
+    description: The full SEMVER (including any pre-release info and all metadata)
+    value: "${{ steps.vtl.outputs.ver_semVer }}"
+  ver_semVerNoMeta:
+    description: The SEMVER without any metadata (including any pre-release info)
+    value: "${{ steps.vtl.outputs.ver_semVerNoMeta }}"
+  docker_tags_with_prefix:
+    description: A list of docker tags that can be passed to docker/build-push-action@v2
+    value: "${{ steps.tags_labels.outputs.TAGS }}"
+  docker_push:
+    description: A true/false flag that can be passed to docker/build-push-action@v2
+    value: "${{ steps.vtl.outputs.docker_push }}"
+  docker_dtag:
+    description: The most deterministic of the tags in docker_tags.
+    value: "${{ steps.tags_labels.outputs.DTAG }}"
+  docker_simple_tags:
+    description: A list of docker tags without prefix
+    value: "${{ steps.tags_labels.outputs.SIMPLE_TAGS }}"
+  oci_title:
+    description: The org.opencontainers.image.title label
+    value: "${{ steps.vtl.outputs.oci_title }}"
+  oci_description:
+    description: The org.opencontainers.image.description label
+    value: "${{ steps.vtl.outputs.oci_description }}"
+  oci_url:
+    description: The org.opencontainers.image.url label
+    value: "${{ steps.vtl.outputs.oci_url }}"
+  oci_source:
+    description: The org.opencontainers.image.source label
+    value: "${{ steps.vtl.outputs.oci_source }}"
+  oci_version:
+    description: The org.opencontainers.image.version label
+    value: "${{ steps.vtl.outputs.oci_version }}"
+  oci_created:
+    description: The org.opencontainers.image.created label.
+    value: "${{ steps.vtl.outputs.oci_created }}"
+  oci_revision:
+    description: The org.opencontainers.image.revision label
+    value: "${{ steps.vtl.outputs.oci_revision }}"
+  oci_licenses:
+    description: The org.opencontainers.image.licenses label
+    value: "${{ steps.vtl.outputs.oci_licenses }}"
+  oci_labels:
+    description: The new-line separated list of OCI labels that can be passed to docker/build-push-action@v2
+    value: "${{ steps.vtl.outputs.oci_labels }}"
+  release_tag:
+    description: Release tag. Contains version or empty value if release was not created.
+    value: "${{ steps.vtl.outputs.release_tag }}"
+
+runs:
+  using: "composite"
+  steps:
+
+    - name: Create versions, tags, and labels
+      id: vtl
+      uses: mapped/action-vtl@v0.2.7
+      with:
+        baseVersion: "${{ inputs.baseVersion }}"
+        dockerImage: 'voplica_tag_prefix'
+        gitHubToken: "${{ inputs.gitHubToken }}"
+        branchMappings: "${{ inputs.branchMappings }}"
+        prereleasePrefix: "${{ inputs.prereleasePrefix }}"
+        versionFile: "${{ inputs.versionFile }}"
+        releasesBranch: "${{ inputs.releasesBranch }}"
+        forcePatchIncrementIfNoChanges: "${{ inputs.forcePatchIncrementIfNoChanges }}"
+        dockerPlatformSuffix: "${{ inputs.dockerPlatformSuffix }}"
+
+    - name: Modify output
+      id: tags_labels
+      shell: bash
+      run: | 
+        tags_str="${{ steps.vtl.outputs.docker_tags }}"
+        d_tags_str="${{ steps.vtl.outputs.docker_dtag }}"
+        labels_str="${{ steps.vtl.outputs.oci_labels }}"
+        
+        IFS=',' read -r -a tags <<< "$tags_str"
+        tags_list=()
+        tags_with_prefix=()
+        
+        for tag in "${tags[@]}"; do
+          # Remove the prefix "my_prefix_"
+            if [[ "$tag" == "voplica_tag_prefix:"* ]]; then
+              tag="${tag#"voplica_tag_prefix:"}"
+            fi
+            tags_list+=("$tag")
+            tags_with_prefix+=("${{ inputs.dockerTagsPrefix }}${tag}")
+        done
+        
+        # Convert the array to a comma-separated string
+        IFS=','  # Set the delimiter to a comma
+        comma_separated_tags="${tags_list[*]}"  # Join the array elements into a single string
+        comma_separated_tags_with_prefix="${tags_with_prefix[*]}"  # Join the array elements into a single string
+        unset IFS  # Reset IFS to default
+        
+        if [[ "$d_tags_str" == "voplica_tag_prefix:"* ]]; then
+          d_tags_str="${d_tags_str#"voplica_tag_prefix:"}"
+        fi
+        
+        echo "SIMPLE_TAGS=$comma_separated_tags" >> "$GITHUB_OUTPUT"
+        echo "TAGS=$comma_separated_tags_with_prefix" >> "$GITHUB_OUTPUT"
+        echo "DTAG=$d_tags_str" >> "$GITHUB_OUTPUT"
