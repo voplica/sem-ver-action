@@ -37,10 +37,6 @@ inputs:
     description: 'Forces to increment patch if no changes were made since the last release'
     required: false
     default: 'false'
-  dockerPlatformSuffix:
-    description: 'Adds a suffix to the docker tag to identify the platform that can be referenced by a composit manifest'
-    required: false
-    default: ''
 
 outputs:
   ver_major:
@@ -73,8 +69,8 @@ outputs:
   ver_semVerNoMeta:
     description: The SEMVER without any metadata (including any pre-release info)
     value: "${{ steps.vtl.outputs.ver_semVerNoMeta }}"
-  docker_tags_with_prefix:
-    description: A list of docker tags that can be passed to docker/build-push-action@v2
+  docker_tags:
+    description: A list of docker tags with added prefix
     value: "${{ steps.tags_labels.outputs.TAGS }}"
   docker_push:
     description: A true/false flag that can be passed to docker/build-push-action@v2
@@ -111,7 +107,7 @@ outputs:
     value: "${{ steps.vtl.outputs.oci_licenses }}"
   oci_labels:
     description: The new-line separated list of OCI labels that can be passed to docker/build-push-action@v2
-    value: "${{ steps.vtl.outputs.oci_labels }}"
+    value: "${{ steps.tags_labels.outputs.LABELS }}"
   release_tag:
     description: Release tag. Contains version or empty value if release was not created.
     value: "${{ steps.vtl.outputs.release_tag }}"
@@ -132,7 +128,6 @@ runs:
         versionFile: "${{ inputs.versionFile }}"
         releasesBranch: "${{ inputs.releasesBranch }}"
         forcePatchIncrementIfNoChanges: "${{ inputs.forcePatchIncrementIfNoChanges }}"
-        dockerPlatformSuffix: "${{ inputs.dockerPlatformSuffix }}"
 
     - name: Modify output
       id: tags_labels
@@ -152,12 +147,14 @@ runs:
               tag="${tag#"voplica_tag_prefix:"}"
             fi
             tags_list+=("$tag")
-            tags_with_prefix+=("${{ inputs.dockerTagsPrefix }}${tag}")
+            tag_with_prefix="${{ inputs.dockerTagsPrefix }}""$tag"
+            tags_with_prefix+=("$tag_with_prefix")
         done
         
         # Convert the array to a comma-separated string
         IFS=','  # Set the delimiter to a comma
         comma_separated_tags="${tags_list[*]}"  # Join the array elements into a single string
+        IFS=','
         comma_separated_tags_with_prefix="${tags_with_prefix[*]}"  # Join the array elements into a single string
         unset IFS  # Reset IFS to default
         
@@ -165,6 +162,16 @@ runs:
           d_tags_str="${d_tags_str#"voplica_tag_prefix:"}"
         fi
         
+        # Step 1: Remove commas
+        labels_str_no_commas="${labels_str//,/}"
+        
+        # Step 2: Replace new lines with commas to create a single line
+        labels_single_line=$(echo "$labels_str_no_commas" | tr '\n' ',')
+        
+        # Step 3: Remove the trailing comma
+        labels_single_line="${labels_single_line%,}"
+        
         echo "SIMPLE_TAGS=$comma_separated_tags" >> "$GITHUB_OUTPUT"
         echo "TAGS=$comma_separated_tags_with_prefix" >> "$GITHUB_OUTPUT"
         echo "DTAG=$d_tags_str" >> "$GITHUB_OUTPUT"
+        echo "LABELS=$labels_single_line" >> "$GITHUB_OUTPUT"
