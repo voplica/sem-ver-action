@@ -16,9 +16,12 @@ jobs:
   build:
     runs-on: "ubuntu-latest"
     steps:
+
       - name: Create versions
         id: versions
         uses: voplica/sem-ver-action@v1
+        with:
+          gitHubToken: "${{ secrets.GITHUB_TOKEN }}"
 
       - name: Print versions
         run: |
