@@ -1,5 +1,5 @@
 name: 'Voplica Semantic Versioning'
-description: 'An Action modifies output from mapped/action-vtl action for semantic versioning'
+description: 'Semantic versioning'
 branding:
   icon: 'book'
   color: 'gray-dark'

@@ -19,7 +19,7 @@ jobs:
 
       - name: Create versions
         id: versions
-        uses: voplica/sem-ver-action@v1
+        uses: voplica/sem-ver-action@v1.0.3
         with:
           gitHubToken: "${{ secrets.GITHUB_TOKEN }}"
 
