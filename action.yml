@@ -118,7 +118,7 @@ runs:
 
     - name: Create versions, tags, and labels
       id: vtl
-      uses: mapped/action-vtl@0786fa33ce7d893115eab59cfb8936b3e8580ec3
+      uses: mapped/action-vtl@d341e2f53d94cb9638a655c6f66b41d1a4335a66
       with:
         baseVersion: "${{ inputs.baseVersion }}"
         dockerImage: 'voplica_tag_prefix'
