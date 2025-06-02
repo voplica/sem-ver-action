@@ -66,9 +66,15 @@ outputs:
   ver_semVer:
     description: The full SEMVER (including any pre-release info and all metadata)
     value: "${{ steps.vtl.outputs.ver_semVer }}"
+  ver_semVerNoMetaPyPA:
+    description: The SEMVER without any metadata for Python, Perl, and Ansible.
+    value: "${{ steps.vtl.outputs.ver_semVerNoMetaPyPA }}"
   ver_semVerNoMeta:
     description: The SEMVER without any metadata (including any pre-release info)
     value: "${{ steps.vtl.outputs.ver_semVerNoMeta }}"
+  ver_semVerFourTupleNumeric:
+    description: The SEMVER from the four tuple (major, minor, patch, commit number) in numeric format.
+    value: "${{ steps.vtl.outputs.ver_semVerFourTupleNumeric }}"
   docker_tags:
     description: A list of docker tags with added prefix
     value: "${{ steps.tags_labels.outputs.TAGS }}"
@@ -118,7 +124,7 @@ runs:
 
     - name: Create versions, tags, and labels
       id: vtl
-      uses: mapped/action-vtl@d341e2f53d94cb9638a655c6f66b41d1a4335a66
+      uses: mapped/action-vtl@6a6c48d3de744a99a309e4068e05083b5ab4b7bc
       with:
         baseVersion: "${{ inputs.baseVersion }}"
         dockerImage: 'voplica_tag_prefix'
